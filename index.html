@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Socket.io chat</title>
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font: 13px Helvetica, Arial;
+    }
+    
+    #users-wrapper {
+        position: fixed;
+        right: 0;
+        top: 20%;
+        padding: 10px;
+        background: #eee;
+    }
+    
+    #users {
+        list-style-type: none;
+    }
+    
+    #message-form {
+        background: #000;
+        padding: 3px;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+    }
+    
+    #message-form input {
+        border: 0;
+        padding: 10px;
+        width: 90%;
+        margin-right: .5%;
+    }
+    
+    #message-form button {
+        width: 9%;
+        background: rgb(130, 224, 255);
+        border: none;
+        padding: 10px;
+    }
+    
+    #messages {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
+    
+    #messages li {
+        padding: 5px 10px;
+    }
+    
+    #messages li:nth-child(odd) {
+        background: #eee;
+    }
+    
+    #messages li.user-joined {
+        background: #22ee11;
+    }
+    
+    #messages li.mine {
+        background: #aa88ee;
+    }
+    
+    #messages li.user-left {
+        background: #ee88aa;
+    }
+    </style>
+</head>
+
+<body>
+    <form action="" id="nick-form">
+        <label>Tell me your name:
+            <input type="text" id="nick">
+        </label>
+        <button>Set</button>
+    </form>
+    <div id="users-wrapper">
+        <strong>Users:</strong>
+        <ul id="users"></ul>
+    </div>
+    <ul id="messages"></ul>
+    <form action="" id="message-form">
+        <input id="m" autocomplete="off" />
+        <button>Send</button>
+    </form>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+    var socket = io();
+    var nick;
+    var $messages = $('#messages');
+    $('#nick-form').submit(function() {
+        nick = $('#nick').val();
+        console.log(nick);
+        socket.emit('user joined', nick);
+        $(this).remove();
+        return false;
+    })
+    $('#message-form').submit(function() {
+        var msg = $('#m').val();
+        socket.emit('chat message', {
+            user: nick,
+            says: msg
+        });
+        $messages.append($('<li class="mine">').text('YOU: ' + msg));
+        $('#m').val('');
+        return false;
+    });
+    socket.on('chat message', function(msg) {
+        $messages.append($('<li>').text(msg.user + ': ' + msg.says));
+    });
+    socket.on('user joined', function(data) {
+        $messages.append($('<li class="user-joined">').text(data.joined + ' joined! Say hello!'));
+        updateUsers(data.users);
+    });
+
+    socket.on('user disconnected', function(data) {
+        $messages.append($('<li class="user-left">').text(data.left + ' has left:('));
+        updateUsers(data.users);
+    })
+
+    function updateUsers(users) {
+        $('#users').html('');
+        for (var user in users) {
+            $('#users').append($('<li>').text(users[user]));
+        };
+    }
+    </script>
+</body>
+
+</html>
